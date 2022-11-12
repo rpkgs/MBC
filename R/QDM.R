@@ -36,11 +36,13 @@
 #' \item{mhat.p}{vector of bias corrected `m.p` values for the projection
 #' period.}
 #' @seealso `[MBCp], [MBCr], [MRS], [escore]`
+#' 
 #' @references
 #' 1. Cannon, A.J., S.R. Sobie, and T.Q. Murdock, 2015. Bias
 #' correction of simulated precipitation by quantile mapping: How well do
 #' methods preserve relative changes in quantiles and extremes? Journal of
 #' Climate, 28:6938-6959. doi:10.1175/JCLI-D-14-00754.1
+#' 
 #' @export QDM
 QDM <- function(o.c, m.c, m.p, ratio = FALSE, trace = 0.05, trace.calc = 0.5 * trace,
                 jitter.factor = 0, n.tau = NULL, ratio.max = 2, ratio.max.trace = 10 * trace,
