@@ -17,3 +17,4 @@ NeedsCompilation: no
 Packaged: 2020-10-15 23:24:23 UTC; acannon
 Repository: CRAN
 Date/Publication: 2020-10-19 17:50:06 UTC
+RoxygenNote: 7.2.1

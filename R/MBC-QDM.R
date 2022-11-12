@@ -37,6 +37,51 @@ library(FNN)
 # delta.m = x.m-p {/,-} F.m-c^-1(tau.m-p)
 # xhat.m-p = F.o-c^-1(tau.m-p) {*,+} delta.m
 
+
+
+#' Univariate bias correction via quantile delta mapping
+#' 
+#' Univariate bias correction based on the quantile delta mapping \code{QDM}
+#' version of the quantile mapping algorithm from Cannon et al. (2015).
+#' \code{QDM} constrains model-projected changes in quantiles to be preserved
+#' following bias correction by quantile mapping.
+#' 
+#' 
+#' @param o.c vector of observed samples during the calibration period.
+#' @param m.c vector of model outputs during the calibration period.
+#' @param m.p vector of model outputs during the projected period.
+#' @param ratio logical value indicating if samples are of a ratio quantity
+#' (e.g., precipitation).
+#' @param trace numeric value indicating the threshold below which values of a
+#' ratio quantity (e.g., \code{ratio=TRUE}) should be considered exact zeros.
+#' @param trace.calc numeric value of a threshold used internally when handling
+#' of exact zeros; defaults to one half of \code{trace}.
+#' @param jitter.factor optional strength of jittering to be applied when
+#' quantities are quantized.
+#' @param n.tau number of quantiles used in the quantile mapping; \code{NULL}
+#' equals the length of the \code{m.p} series.
+#' @param ratio.max numeric value indicating the maximum proportional change
+#' allowed for ratio quantities below the \code{ratio.max.trace} threshold.
+#' @param ratio.max.trace numeric value of a trace threshold used to constrain
+#' the proportional change in ratio quantities to \code{ratio.max}; defaults to
+#' ten times \code{trace}.
+#' @param ECBC logical value indicating whether \code{mhat.p} outputs should be
+#' ordered according to \code{o.c} ranks, i.e., as in the empirical copula-bias
+#' correction (ECBC) algorithm.
+#' @param ties method used to handle ties when calculating ordinal ranks.
+#' @param subsample use \code{subsample} draws of size \code{n.tau} to
+#' calculate empirical quantiles; if \code{NULL}, calculate normally.
+#' @param pp.type type of plotting position used in \code{quantile}.
+#' @return a list of with elements consisting of: \item{mhat.c}{vector of bias
+#' corrected \code{m.c} values for the calibration period.}
+#' \item{mhat.p}{vector of bias corrected \code{m.p} values for the projection
+#' period.}
+#' @seealso \code{\link{MBCp}, \link{MBCr}, \link{MRS}, \link{escore}}
+#' @references Cannon, A.J., S.R. Sobie, and T.Q. Murdock, 2015. Bias
+#' correction of simulated precipitation by quantile mapping: How well do
+#' methods preserve relative changes in quantiles and extremes? Journal of
+#' Climate, 28:6938-6959. doi:10.1175/JCLI-D-14-00754.1
+#' @export QDM
 QDM <- function(o.c, m.c, m.p, ratio=FALSE, trace=0.05, trace.calc=0.5*trace,
          jitter.factor=0, n.tau=NULL, ratio.max=2, ratio.max.trace=10*trace,
          ECBC=FALSE, ties='first', subsample=NULL, pp.type=7){
@@ -116,16 +161,31 @@ QDM <- function(o.c, m.c, m.p, ratio=FALSE, trace=0.05, trace.calc=0.5*trace,
 ################################################################################
 # Multivariate goodness-of-fit scoring function
 
-#' Energy score for assessing the equality of two multivariate samples 
+
+
+#' Energy distance score
 #' 
-#' @references 
+#' Calculate the energy distance score measuring the statistical discrepancy
+#' between samples \code{x} and \code{y} from two multivariate distributions.
 #' 
-#' 1. Székely, G.J. and Rizzo, M.L. 2013. Energy statistics: A class of
-#'   statistics based on distances. Journal of Statistical Planning and
-#'   Inference, 143(8), 1249-1272. doi:10.1016/j.jspi.2013.03.018
-#' 2. Baringhaus, L. and Franz, C. 2004. On a new multivariate two-sample test.
-#'   Journal of Multivariate Analysis, 88(1), 190-206.
-#'   doi:10.1016/S0047-259X(03)00079-4
+#' 
+#' @param x numeric matrix.
+#' @param y numeric matrix.
+#' @param scale.x logical indicating whether data should be standardized based
+#' on \code{x}.
+#' @param n.cases the number of sub-sampled cases; \code{NULL} uses all data.
+#' @param alpha distance exponent in (0,2]
+#' @param method method used to weight the statistics
+#' @references Székely, G.J. and M.L. Rizzo, 2004. Testing for equal
+#' distributions in high dimension, InterStat, November (5).
+#' 
+#' Székely, G.J. and M.L. Rizzo, 2013. Energy statistics: statistics based on
+#' distances. Journal of Statistical Planning and Inference, 143(8):1249-1272.
+#' doi:10.1016/j.jspi.2013.03.018
+#' 
+#' Rizzo, M.L. and G.L. Székely, 2016. Energy distance. Wiley Interdisciplinary
+#' Reviews: Computational Statistics, 8(1):27-38.
+#' @export escore
 escore <- function (x, y, scale.x = FALSE, n.cases = NULL, alpha = 1, method = "cluster") {
     n.x <- nrow(x)
     n.y <- nrow(y)
@@ -155,18 +215,39 @@ escore <- function (x, y, scale.x = FALSE, n.cases = NULL, alpha = 1, method = "
 #  Matching Marginal Distributions and Inter-variable Dependence Structure.
 #  Journal of Climate, doi:10.1175/JCLI-D-15-0679.1
 
-#' Multivariate rescaling based on Cholesky decomposition of the covariance
-#'  matrix
+
+
+#' Multivariate linear rescaling using Cholesky decomposition
 #' 
-#' @references 
-#' 1. Scheuer, E.M., Stoller, D.S., 1962. On the generation of normal random
-#'  vectors. Technometrics, 4(2), 278-281.
+#' Multivariate linear bias correction based on Cholesky decomposition of the
+#' covariance matrix following Scheuer and Stoller (1962) and Bürger et al.
+#' (2011). Bias correction matches the multivariate mean and covariance
+#' structure.
 #' 
-#' 2. Bürger, G., Schulla, J., & Werner, A.T. 2011. Estimates of future flow,
-#'  including extremes, of the Columbia River headwaters. Wat Resour Res 47(10),
-#'  W10520, doi:10.1029/2010WR009716
 #' 
-#' @export 
+#' @param o.c matrix of observed samples during the calibration period.
+#' @param m.c matrix of model outputs during the calibration period.
+#' @param m.p matrix of model outputs during the projected period.
+#' @param o.c.chol precalculated Cholesky decomposition of the \code{o.c}
+#' covariance matrix; \code{NULL} calculates internally.
+#' @param o.p.chol precalculated Cholesky decomposition of the target
+#' \code{o.p} covariance matrix; \code{NULL} defaults to \code{o.c.chol}.
+#' @param m.c.chol precalculated Cholesky decomposition of the \code{m.c}
+#' covariance matrix; \code{NULL} calculates internally.
+#' @param m.p.chol precalculated Cholesky decomposition of the \code{m.p}
+#' covariance matrix; \code{NULL} calculates internally.
+#' @return a list of with elements consisting of: \item{mhat.c}{matrix of bias
+#' corrected \code{m.c} values for the calibration period.}
+#' \item{mhat.p}{matrix of bias corrected \code{m.p} values for the projection
+#' period.}
+#' @seealso \code{\link{MBCp}, \link{MBCr}}
+#' @references Scheuer, E.M. and D.S. Stoller, 1962. On the generation of
+#' normal random vectors. Technometrics, 4(2):278-281.
+#' 
+#' Bürger, G., J. Schulla, and A.T. Werner, 2011. Estimates of future flow,
+#' including extremes, of the Columbia River headwaters. Water Resources
+#' Research, 47(10):W10520. doi:10.1029/2010WR009716
+#' @export MRS
 MRS <- function(o.c, m.c, m.p, o.c.chol=NULL, o.p.chol=NULL, m.c.chol=NULL,
          m.p.chol=NULL){
     # Center based on multivariate means
@@ -195,6 +276,59 @@ MRS <- function(o.c, m.c, m.p, o.c.chol=NULL, o.p.chol=NULL, m.c.chol=NULL,
     list(mhat.c=mbc.c, mhat.p=mbc.p)
 }
 
+
+
+#' Multivariate bias correction (Spearman rank correlation)
+#' 
+#' Multivariate bias correction that matches marginal distributions using
+#' \code{\link{QDM}} and the Spearman rank correlation dependence structure
+#' following Cannon (2016).
+#' 
+#' 
+#' @param o.c matrix of observed samples during the calibration period.
+#' @param m.c matrix of model outputs during the calibration period.
+#' @param m.p matrix of model outputs during the projected period.
+#' @param iter maximum number of algorithm iterations.
+#' @param cor.thresh if greater than zero, a threshold indicating the change in
+#' magnitude of Spearman rank correlations required for convergence.
+#' @param ratio.seq vector of logical values indicating if samples are of a
+#' ratio quantity (e.g., precipitation).
+#' @param trace numeric values indicating thresholds below which values of a
+#' ratio quantity (e.g., \code{ratio=TRUE}) should be considered exact zeros.
+#' @param trace.calc numeric values of thresholds used internally when handling
+#' of exact zeros; defaults to one half of \code{trace}.
+#' @param jitter.factor optional strength of jittering to be applied when
+#' quantities are quantized.
+#' @param n.tau number of quantiles used in the quantile mapping; \code{NULL}
+#' equals the length of the \code{m.p} series.
+#' @param ratio.max numeric values indicating the maximum proportional changes
+#' allowed for ratio quantities below the \code{ratio.max.trace} threshold.
+#' @param ratio.max.trace numeric values of trace thresholds used to constrain
+#' the proportional change in ratio quantities to \code{ratio.max}; defaults to
+#' ten times \code{trace}.
+#' @param ties method used to handle ties when calculating ordinal ranks.
+#' @param qmap.precalc logical value indicating if \code{m.c} and \code{m.p}
+#' are outputs from \code{QDM}.
+#' @param silent logical value indicating if algorithm progress should be
+#' reported.
+#' @param subsample use \code{subsample} draws of size \code{n.tau} to
+#' calculate empirical quantiles; if \code{NULL}, calculate normally.
+#' @param pp.type type of plotting position used in \code{quantile}.
+#' @return a list of with elements consisting of: \item{mhat.c}{matrix of bias
+#' corrected \code{m.c} values for the calibration period.}
+#' \item{mhat.p}{matrix of bias corrected \code{m.p} values for the projection
+#' period.}
+#' @seealso \code{\link{QDM}, \link{MBCp}, \link{MRS}, \link{MBCn}
+#' \link{escore}}
+#' @references Cannon, A.J., 2016. Multivariate bias correction of climate
+#' model output: Matching marginal distributions and inter-variable dependence
+#' structure. Journal of Climate, 29:7045-7064. doi:10.1175/JCLI-D-15-0679.1
+#' 
+#' Cannon, A.J., S.R. Sobie, and T.Q. Murdock, 2015. Bias correction of
+#' simulated precipitation by quantile mapping: How well do methods preserve
+#' relative changes in quantiles and extremes? Journal of Climate,
+#' 28:6938-6959. doi:10.1175/JCLI-D-14-00754.1
+#' @export MBCr
 MBCr <-
 # Multivariate quantile mapping bias correction (Spearman correlation)
 # Cannon, A.J., 2016. Multivariate bias correction of climate model outputs: 
@@ -273,6 +407,59 @@ function(o.c, m.c, m.p, iter=20, cor.thresh=1e-4,
     list(mhat.c=m.c.r, mhat.p=m.p.r)
 }
 
+
+
+#' Multivariate bias correction (Pearson correlation)
+#' 
+#' Multivariate bias correction that matches marginal distributions using
+#' \code{\link{QDM}} and the Pearson correlation dependence structure following
+#' Cannon (2016).
+#' 
+#' 
+#' @param o.c matrix of observed samples during the calibration period.
+#' @param m.c matrix of model outputs during the calibration period.
+#' @param m.p matrix of model outputs during the projected period.
+#' @param iter maximum number of algorithm iterations.
+#' @param cor.thresh if greater than zero, a threshold indicating the change in
+#' magnitude of Pearson correlations required for convergence.
+#' @param ratio.seq vector of logical values indicating if samples are of a
+#' ratio quantity (e.g., precipitation).
+#' @param trace numeric values indicating thresholds below which values of a
+#' ratio quantity (e.g., \code{ratio=TRUE}) should be considered exact zeros.
+#' @param trace.calc numeric values of thresholds used internally when handling
+#' of exact zeros; defaults to one half of \code{trace}.
+#' @param jitter.factor optional strength of jittering to be applied when
+#' quantities are quantized.
+#' @param n.tau number of quantiles used in the quantile mapping; \code{NULL}
+#' equals the length of the \code{m.p} series.
+#' @param ratio.max numeric values indicating the maximum proportional changes
+#' allowed for ratio quantities below the \code{ratio.max.trace} threshold.
+#' @param ratio.max.trace numeric values of trace thresholds used to constrain
+#' the proportional change in ratio quantities to \code{ratio.max}; defaults to
+#' ten times \code{trace}.
+#' @param ties method used to handle ties when calculating ordinal ranks.
+#' @param qmap.precalc logical value indicating if \code{m.c} and \code{m.p}
+#' are outputs from \code{QDM}.
+#' @param silent logical value indicating if algorithm progress should be
+#' reported.
+#' @param subsample use \code{subsample} draws of size \code{n.tau} to
+#' calculate initial empirical quantiles; if \code{NULL}, calculate normally.
+#' @param pp.type type of plotting position used in \code{quantile}.
+#' @return a list of with elements consisting of: \item{mhat.c}{matrix of bias
+#' corrected \code{m.c} values for the calibration period.}
+#' \item{mhat.p}{matrix of bias corrected \code{m.p} values for the projection
+#' period.}
+#' @seealso \code{\link{QDM}, \link{MBCr}, \link{MRS}, \link{MBCn}
+#' \link{escore}}
+#' @references Cannon, A.J., 2016. Multivariate bias correction of climate
+#' model output: Matching marginal distributions and inter-variable dependence
+#' structure. Journal of Climate, 29:7045-7064. doi:10.1175/JCLI-D-15-0679.1
+#' 
+#' Cannon, A.J., S.R. Sobie, and T.Q. Murdock, 2015. Bias correction of
+#' simulated precipitation by quantile mapping: How well do methods preserve
+#' relative changes in quantiles and extremes? Journal of Climate,
+#' 28:6938-6959. doi:10.1175/JCLI-D-14-00754.1
+#' @export MBCp
 MBCp <-
 # Multivariate quantile mapping bias correction (Pearson correlation)
 # Cannon, A.J., 2016. Multivariate bias correction of climate model outputs: 
@@ -362,6 +549,18 @@ function(o.c, m.c, m.p, iter=20, cor.thresh=1e-4,
 #  107(1), 123-137.
 
 # Random orthogonal rotation
+
+
+#' Random orthogonal rotation
+#' 
+#' Generate a \code{k}-dimensional random orthogonal rotation matrix.
+#' 
+#' 
+#' @param k the number of dimensions.
+#' @references Mezzadri, F. 2007. How to generate random matrices from the
+#' classical compact groups, Notices of the American Mathematical Society,
+#' 54:592–604.
+#' @export rot.random
 rot.random <- function(k) {
   rand <- matrix(rnorm(k * k), ncol=k)
   QRd <- qr(rand)
@@ -377,6 +576,73 @@ rot.random <- function(k) {
 #  N-dimensional probability density function transform for climate model
 #  simulations of multiple variables. Climate Dynamics, 50(1-2):31-49.
 #  doi:10.1007/s00382-017-3580-6
+
+
+#' Multivariate bias correction (N-pdft)
+#' 
+#' Multivariate bias correction that matches the multivariate distribution
+#' using \code{\link{QDM}} and the N-dimensional probability density function
+#' transform (N-pdft) following Cannon (2018).
+#' 
+#' 
+#' @param o.c matrix of observed samples during the calibration period.
+#' @param m.c matrix of model outputs during the calibration period.
+#' @param m.p matrix of model outputs during the projected period.
+#' @param iter maximum number of algorithm iterations.
+#' @param ratio.seq vector of logical values indicating if samples are of a
+#' ratio quantity (e.g., precipitation).
+#' @param trace numeric values indicating thresholds below which values of a
+#' ratio quantity (e.g., \code{ratio=TRUE}) should be considered exact zeros.
+#' @param trace.calc numeric values of thresholds used internally when handling
+#' of exact zeros; defaults to one half of \code{trace}.
+#' @param jitter.factor optional strength of jittering to be applied when
+#' quantities are quantized.
+#' @param n.tau number of quantiles used in the quantile mapping; \code{NULL}
+#' equals the length of the \code{m.p} series.
+#' @param ratio.max numeric values indicating the maximum proportional changes
+#' allowed for ratio quantities below the \code{ratio.max.trace} threshold.
+#' @param ratio.max.trace numeric values of trace thresholds used to constrain
+#' the proportional change in ratio quantities to \code{ratio.max}; defaults to
+#' ten times \code{trace}.
+#' @param ties method used to handle ties when calculating ordinal ranks.
+#' @param qmap.precalc logical value indicating if \code{m.c} and \code{m.p}
+#' are outputs from \code{QDM}.
+#' @param rot.seq use a supplied list of random rotation matrices. \code{NULL}
+#' generates on the fly.
+#' @param silent logical value indicating if algorithm progress should be
+#' reported.
+#' @param n.escore number of cases used to calculate the energy distance when
+#' monitoring convergence.
+#' @param return.all logical value indicating whether results from all
+#' iterations are returned.
+#' @param subsample use \code{subsample} draws of size \code{n.tau} to
+#' calculate initial empirical quantiles; if \code{NULL}, calculate normally.
+#' @param pp.type type of plotting position used in \code{quantile}.
+#' @return a list of with elements consisting of: \item{mhat.c}{matrix of bias
+#' corrected \code{m.c} values for the calibration period.}
+#' \item{mhat.p}{matrix of bias corrected \code{m.p} values for the projection
+#' period.}
+#' @seealso \code{\link{QDM}, \link{MBCp}, \link{MBCr}, \link{MRS},
+#' \link{escore}, \link{rot.random}}
+#' @references Cannon, A.J., 2018. Multivariate quantile mapping bias
+#' correction: An N-dimensional probability density function transform for
+#' climate model simulations of multiple variables. Climate Dynamics,
+#' 50(1-2):31-49. doi:10.1007/s00382-017-3580-6
+#' 
+#' Cannon, A.J., S.R. Sobie, and T.Q. Murdock, 2015. Bias correction of
+#' simulated precipitation by quantile mapping: How well do methods preserve
+#' relative changes in quantiles and extremes? Journal of Climate,
+#' 28:6938-6959. doi:10.1175/JCLI-D-14-00754.1
+#' 
+#' Pitié, F., A.C. Kokaram, and R. Dahyot, 2005. N-dimensional probability
+#' density function transfer and its application to color transfer. In Tenth
+#' IEEE International Conference on Computer Vision, 2005. ICCV 2005. (Vol. 2,
+#' pp. 1434-1439). IEEE.
+#' 
+#' Pitié, F., A.C. Kokaram, and R. Dahyot, 2007. Automated colour grading using
+#' colour distribution transfer. Computer Vision and Image Understanding,
+#' 107(1):123-137.
+#' @export MBCn
 MBCn <- function(o.c, m.c, m.p, iter=30, ratio.seq=rep(FALSE, ncol(o.c)),
          trace=0.05, trace.calc=0.5*trace, jitter.factor=0, n.tau=NULL,
          ratio.max=2, ratio.max.trace=10*trace, ties='first',
@@ -510,6 +776,56 @@ MBCn <- function(o.c, m.c, m.p, iter=30, ratio.seq=rep(FALSE, ncol(o.c)),
 
 
 # Vrac et al., (2018)
+
+
+#' Multivariate bias correction (R2D2)
+#' 
+#' Multivariate bias correction that matches the multivariate distribution
+#' using \code{\link{QDM}} and the R2D2 algorithm following Vrac (2018).
+#' 
+#' 
+#' @param o.c matrix of observed samples during the calibration period.
+#' @param m.c matrix of model outputs during the calibration period.
+#' @param m.p matrix of model outputs during the projected period.
+#' @param ref.column index of the reference column used for the 1D nearest
+#' neighbour matching
+#' @param ratio.seq vector of logical values indicating if samples are of a
+#' ratio quantity (e.g., precipitation).
+#' @param trace numeric values indicating thresholds below which values of a
+#' ratio quantity (e.g., \code{ratio=TRUE}) should be considered exact zeros.
+#' @param trace.calc numeric values of thresholds used internally when handling
+#' of exact zeros; defaults to one half of \code{trace}.
+#' @param jitter.factor optional strength of jittering to be applied when
+#' quantities are quantized.
+#' @param n.tau number of quantiles used in the quantile mapping; \code{NULL}
+#' equals the length of the \code{m.p} series.
+#' @param ratio.max numeric values indicating the maximum proportional changes
+#' allowed for ratio quantities below the \code{ratio.max.trace} threshold.
+#' @param ratio.max.trace numeric values of trace thresholds used to constrain
+#' the proportional change in ratio quantities to \code{ratio.max}; defaults to
+#' ten times \code{trace}.
+#' @param ties method used to handle ties when calculating ordinal ranks.
+#' @param qmap.precalc logical value indicating if \code{m.c} and \code{m.p}
+#' are outputs from \code{QDM}.
+#' @param subsample use \code{subsample} draws of size \code{n.tau} to
+#' calculate initial empirical quantiles; if \code{NULL}, calculate normally.
+#' @param pp.type type of plotting position used in \code{quantile}.
+#' @return a list of with elements consisting of: \item{mhat.c}{matrix of bias
+#' corrected \code{m.c} values for the calibration period.}
+#' \item{mhat.p}{matrix of bias corrected \code{m.p} values for the projection
+#' period.}
+#' @seealso \code{\link{QDM}, \link{MBCp}, \link{MBCr}, \link{MRS},
+#' \link{MBCn}}
+#' @references Cannon, A.J., S.R. Sobie, and T.Q. Murdock, 2015. Bias
+#' correction of simulated precipitation by quantile mapping: How well do
+#' methods preserve relative changes in quantiles and extremes? Journal of
+#' Climate, 28:6938-6959. doi:10.1175/JCLI-D-14-00754.1
+#' 
+#' Vrac, M., 2018. Multivariate bias adjustment of high-dimensional climate
+#' simulations: the Rank Resampling for Distributions and Dependences (R2D2)
+#' bias correction. Hydrology and Earth System Sciences, 22:3175-3196.
+#' doi:10.5194/hess-22-3175-2018
+#' @export R2D2
 R2D2 <- function(o.c, m.c, m.p, ref.column = 1, ratio.seq = rep(FALSE,
     ncol(o.c)), trace = 0.05, trace.calc = 0.5 * trace, jitter.factor = 0,
     n.tau = NULL, ratio.max = 2, ratio.max.trace = 10 * trace,
