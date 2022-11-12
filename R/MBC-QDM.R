@@ -1,92 +1,4 @@
-################################################################################
-# MBC-QDM.R - Multivariate bias correction based on quantile delta mapping
-# and iterative application of Cholesky decomposition rescaling (MBCp and MBCr)
-# Multivariate bias correction based on quantile delta mapping and the 
-# N-dimensional pdf transform (MBCn)
-# Alex J. Cannon (alex.cannon@canada.ca)
-################################################################################
 
-# library(Matrix)
-# library(energy)
-# library(FNN)
-
-# Quantile delta mapping bias correction for preserving changes in quantiles
-# Note: QDM is equivalent to the equidistant and equiratio forms of quantile
-# mapping (Cannon et al., 2015).
-
-# Cannon, A.J., Sobie, S.R., and Murdock, T.Q. 2015. Bias correction of
-#  simulated precipitation by quantile mapping: How well do methods preserve
-#  relative changes in quantiles and extremes? Journal of Climate,
-#  28: 6938-6959. doi:10.1175/JCLI-D-14-00754.1
-
-# o = vector of observed values; m = vector of modelled values
-# c = current period;  p = projected period
-# ratio = TRUE --> preserve relative trends in a ratio variable
-# trace = 0.05 --> replace values less than trace with exact zeros
-# trace.calc = 0.5*trace --> treat values below trace.calc as censored
-# jitter.factor = 0.01 --> jitter to accommodate ties
-# n.tau = NULL --> number of empirical quantiles (NULL=sample length)
-# ratio.max = 2 --> maximum delta when values are less than ratio.max.trace
-# ratio.max.trace = 10*trace --> values below which ratio.max is applied
-# ECBC = TRUE --> apply Schaake shuffle to enforce o.c temporal sequencing
-# subsample = NULL --> use this number of repeated subsamples of size n.tau
-#  to calculate empirical quantiles (e.g., when o.c, m.c, and m.p are of
-#  very different size)
-# pp.type = 7 --> plotting position type used in quantile
-# tau.m-p = F.m-p(x.m-p)
-# delta.m = x.m-p {/,-} F.m-c^-1(tau.m-p)
-# xhat.m-p = F.o-c^-1(tau.m-p) {*,+} delta.m
-
-
-
-################################################################################
-# Multivariate goodness-of-fit scoring function
-
-
-
-#' Energy distance score
-#' 
-#' Calculate the energy distance score measuring the statistical discrepancy
-#' between samples `x` and `y` from two multivariate distributions.
-#' 
-#' 
-#' @param x numeric matrix.
-#' @param y numeric matrix.
-#' @param scale.x logical indicating whether data should be standardized based
-#' on `x`.
-#' @param n.cases the number of sub-sampled cases; `NULL` uses all data.
-#' @param alpha distance exponent in (0,2]
-#' @param method method used to weight the statistics
-#' @references Székely, G.J. and M.L. Rizzo, 2004. Testing for equal
-#' distributions in high dimension, InterStat, November (5).
-#' 
-#' Székely, G.J. and M.L. Rizzo, 2013. Energy statistics: statistics based on
-#' distances. Journal of Statistical Planning and Inference, 143(8):1249-1272.
-#' doi:10.1016/j.jspi.2013.03.018
-#' 
-#' Rizzo, M.L. and G.L. Székely, 2016. Energy distance. Wiley Interdisciplinary
-#' Reviews: Computational Statistics, 8(1):27-38.
-#' @export escore
-escore <- function (x, y, scale.x = FALSE, n.cases = NULL, alpha = 1, method = "cluster") {
-    n.x <- nrow(x)
-    n.y <- nrow(y)
-    if (scale.x) {
-        x <- scale(x)
-        y <- scale(y, center = attr(x, "scaled:center"), scale = attr(x,
-            "scaled:scale"))
-    }
-    if (!is.null(n.cases)) {
-        n.cases <- min(n.x, n.y, n.cases)
-        x <- x[sample(n.x, size = n.cases), , drop = FALSE]
-        y <- y[sample(n.y, size = n.cases), , drop = FALSE]
-        n.x <- n.cases
-        n.y <- n.cases
-    }
-    edist(rbind(x, y), sizes = c(n.x, n.y), distance = FALSE,
-        alpha = alpha, method = method)[1]/2
-}
-
-################################################################################
 # Multivariate bias correction based on iterative application of quantile
 # mapping (or ranking) and multivariate rescaling via Cholesky
 # decomposition of the covariance matrix. Results in simulated marginal 
@@ -105,7 +17,6 @@ escore <- function (x, y, scale.x = FALSE, n.cases = NULL, alpha = 1, method = "
 #' (2011). Bias correction matches the multivariate mean and covariance
 #' structure.
 #' 
-#' 
 #' @param o.c matrix of observed samples during the calibration period.
 #' @param m.c matrix of model outputs during the calibration period.
 #' @param m.p matrix of model outputs during the projected period.
@@ -121,13 +32,17 @@ escore <- function (x, y, scale.x = FALSE, n.cases = NULL, alpha = 1, method = "
 #' corrected `m.c` values for the calibration period.}
 #' \item{mhat.p}{matrix of bias corrected `m.p` values for the projection
 #' period.}
+#' 
 #' @seealso `[MBCp], [MBCr]`
-#' @references Scheuer, E.M. and D.S. Stoller, 1962. On the generation of
+#' 
+#' @references 
+#' 1. Scheuer, E.M. and D.S. Stoller, 1962. On the generation of
 #' normal random vectors. Technometrics, 4(2):278-281.
 #' 
-#' Bürger, G., J. Schulla, and A.T. Werner, 2011. Estimates of future flow,
+#' 2. Bürger, G., J. Schulla, and A.T. Werner, 2011. Estimates of future flow,
 #' including extremes, of the Columbia River headwaters. Water Resources
 #' Research, 47(10):W10520. doi:10.1029/2010WR009716
+#' 
 #' @export MRS
 MRS <- function(o.c, m.c, m.p, o.c.chol=NULL, o.p.chol=NULL, m.c.chol=NULL,
          m.p.chol=NULL){
@@ -165,10 +80,8 @@ MRS <- function(o.c, m.c, m.p, o.c.chol=NULL, o.p.chol=NULL, m.c.chol=NULL,
 #' [QDM()] and the Spearman rank correlation dependence structure
 #' following Cannon (2016).
 #' 
+#' @inheritParams MRS
 #' 
-#' @param o.c matrix of observed samples during the calibration period.
-#' @param m.c matrix of model outputs during the calibration period.
-#' @param m.p matrix of model outputs during the projected period.
 #' @param iter maximum number of algorithm iterations.
 #' @param cor.thresh if greater than zero, a threshold indicating the change in
 #' magnitude of Spearman rank correlations required for convergence.
@@ -296,10 +209,8 @@ function(o.c, m.c, m.p, iter=20, cor.thresh=1e-4,
 #' [QDM()] and the Pearson correlation dependence structure following
 #' Cannon (2016).
 #' 
+#' @inheritParams MRS
 #' 
-#' @param o.c matrix of observed samples during the calibration period.
-#' @param m.c matrix of model outputs during the calibration period.
-#' @param m.p matrix of model outputs during the projected period.
 #' @param iter maximum number of algorithm iterations.
 #' @param cor.thresh if greater than zero, a threshold indicating the change in
 #' magnitude of Pearson correlations required for convergence.
@@ -418,7 +329,6 @@ function(o.c, m.c, m.p, iter=20, cor.thresh=1e-4,
     list(mhat.c=m.c, mhat.p=m.p)
 }
 
-################################################################################
 # Multivariate bias correction based on iterative application of random
 # orthogonal rotation and quantile mapping (N-dimensional pdf transfer)
 # Pitié, F., Kokaram, A.C., and Dahyot, R. 2005. N-dimensional probability
@@ -430,27 +340,6 @@ function(o.c, m.c, m.p, iter=20, cor.thresh=1e-4,
 #  107(1), 123-137.
 
 # Random orthogonal rotation
-
-
-#' Random orthogonal rotation
-#' 
-#' Generate a `k`-dimensional random orthogonal rotation matrix.
-#' 
-#' 
-#' @param k the number of dimensions.
-#' @references Mezzadri, F. 2007. How to generate random matrices from the
-#' classical compact groups, Notices of the American Mathematical Society,
-#' 54:592–604.
-#' @export rot.random
-rot.random <- function(k) {
-  rand <- matrix(rnorm(k * k), ncol=k)
-  QRd <- qr(rand)
-  Q <- qr.Q(QRd)
-  R <- qr.R(QRd)
-  diagR <- diag(R)
-  rot <- Q %*% diag(diagR/abs(diagR))
-  return(rot)
-}
 
 # Multivariate quantile mapping bias correction (N-dimensional pdf transfer)
 # Cannon, A.J., 2018. Multivariate quantile mapping bias correction: An 
@@ -505,6 +394,7 @@ rot.random <- function(k) {
 #' period.}
 #' @seealso `[QDM], [MBCp], [MBCr], [MRS],
 #' [escore], [rot.random]`
+#' 
 #' @references Cannon, A.J., 2018. Multivariate quantile mapping bias
 #' correction: An N-dimensional probability density function transform for
 #' climate model simulations of multiple variables. Climate Dynamics,
@@ -657,7 +547,6 @@ MBCn <- function(o.c, m.c, m.p, iter=30, ratio.seq=rep(FALSE, ncol(o.c)),
 
 
 # Vrac et al., (2018)
-
 
 #' Multivariate bias correction (R2D2)
 #' 

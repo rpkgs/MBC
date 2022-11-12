@@ -46,12 +46,13 @@ covariance matrix following Scheuer and Stoller (1962) and Bürger et al.
 structure.
 }
 \references{
-Scheuer, E.M. and D.S. Stoller, 1962. On the generation of
+\enumerate{
+\item Scheuer, E.M. and D.S. Stoller, 1962. On the generation of
 normal random vectors. Technometrics, 4(2):278-281.
-
-Bürger, G., J. Schulla, and A.T. Werner, 2011. Estimates of future flow,
+\item Bürger, G., J. Schulla, and A.T. Werner, 2011. Estimates of future flow,
 including extremes, of the Columbia River headwaters. Water Resources
 Research, 47(10):W10520. doi:10.1029/2010WR009716
+}
 }
 \seealso{
 \verb{[MBCp], [MBCr]}
