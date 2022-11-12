@@ -11,7 +11,7 @@ An object of class \code{list} of length 6.
 cccma
 }
 \value{
-a list of with elements consisting of: 
+a list of with elements consisting of:
 \item{gcm.c}{matrix of CanESM2
 variables for the calibration period.} \item{gcm.p}{matrix of CanESM2
 variables for the validation period.} \item{rcm.c}{matrix of CanRCM4

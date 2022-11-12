@@ -54,5 +54,5 @@ including extremes, of the Columbia River headwaters. Water Resources
 Research, 47(10):W10520. doi:10.1029/2010WR009716
 }
 \seealso{
-\code{\link{MBCp}, \link{MBCr}}
+\verb{[MBCp], [MBCr]}
 }

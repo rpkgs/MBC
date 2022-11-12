@@ -87,7 +87,7 @@ period.}
 }
 \description{
 Multivariate bias correction that matches the multivariate distribution
-using \code{\link{QDM}} and the N-dimensional probability density function
+using \code{\link[=QDM]{QDM()}} and the N-dimensional probability density function
 transform (N-pdft) following Cannon (2018).
 }
 \references{
@@ -111,6 +111,5 @@ colour distribution transfer. Computer Vision and Image Understanding,
 107(1):123-137.
 }
 \seealso{
-\code{\link{QDM}, \link{MBCp}, \link{MBCr}, \link{MRS},
-\link{escore}, \link{rot.random}}
+\verb{[QDM], [MBCp], [MBCr], [MRS], [escore], [rot.random]}
 }

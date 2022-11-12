@@ -72,7 +72,7 @@ period.}
 }
 \description{
 Multivariate bias correction that matches the multivariate distribution
-using \code{\link{QDM}} and the R2D2 algorithm following Vrac (2018).
+using \code{\link[=QDM]{QDM()}} and the R2D2 algorithm following Vrac (2018).
 }
 \references{
 Cannon, A.J., S.R. Sobie, and T.Q. Murdock, 2015. Bias
@@ -86,6 +86,5 @@ bias correction. Hydrology and Earth System Sciences, 22:3175-3196.
 doi:10.5194/hess-22-3175-2018
 }
 \seealso{
-\code{\link{QDM}, \link{MBCp}, \link{MBCr}, \link{MRS},
-\link{MBCn}}
+\verb{[QDM], [MBCp], [MBCr], [MRS], [MBCn]}
 }

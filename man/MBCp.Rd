@@ -79,7 +79,7 @@ period.}
 }
 \description{
 Multivariate bias correction that matches marginal distributions using
-\code{\link{QDM}} and the Pearson correlation dependence structure following
+\code{\link[=QDM]{QDM()}} and the Pearson correlation dependence structure following
 Cannon (2016).
 }
 \references{
@@ -93,6 +93,5 @@ relative changes in quantiles and extremes? Journal of Climate,
 28:6938-6959. doi:10.1175/JCLI-D-14-00754.1
 }
 \seealso{
-\code{\link{QDM}, \link{MBCr}, \link{MRS}, \link{MBCn}
-\link{escore}}
+\verb{[QDM], [MBCr], [MRS], [MBCn] [escore]}
 }
