@@ -10,35 +10,37 @@ library(Matrix)
 library(energy)
 library(FNN)
 
-QDM <-
 # Quantile delta mapping bias correction for preserving changes in quantiles
 # Note: QDM is equivalent to the equidistant and equiratio forms of quantile
 # mapping (Cannon et al., 2015).
+
 # Cannon, A.J., Sobie, S.R., and Murdock, T.Q. 2015. Bias correction of
 #  simulated precipitation by quantile mapping: How well do methods preserve
 #  relative changes in quantiles and extremes? Journal of Climate,
 #  28: 6938-6959. doi:10.1175/JCLI-D-14-00754.1
-function(o.c, m.c, m.p, ratio=FALSE, trace=0.05, trace.calc=0.5*trace,
+
+# o = vector of observed values; m = vector of modelled values
+# c = current period;  p = projected period
+# ratio = TRUE --> preserve relative trends in a ratio variable
+# trace = 0.05 --> replace values less than trace with exact zeros
+# trace.calc = 0.5*trace --> treat values below trace.calc as censored
+# jitter.factor = 0.01 --> jitter to accommodate ties
+# n.tau = NULL --> number of empirical quantiles (NULL=sample length)
+# ratio.max = 2 --> maximum delta when values are less than ratio.max.trace
+# ratio.max.trace = 10*trace --> values below which ratio.max is applied
+# ECBC = TRUE --> apply Schaake shuffle to enforce o.c temporal sequencing
+# subsample = NULL --> use this number of repeated subsamples of size n.tau
+#  to calculate empirical quantiles (e.g., when o.c, m.c, and m.p are of
+#  very different size)
+# pp.type = 7 --> plotting position type used in quantile
+# tau.m-p = F.m-p(x.m-p)
+# delta.m = x.m-p {/,-} F.m-c^-1(tau.m-p)
+# xhat.m-p = F.o-c^-1(tau.m-p) {*,+} delta.m
+
+QDM <- function(o.c, m.c, m.p, ratio=FALSE, trace=0.05, trace.calc=0.5*trace,
          jitter.factor=0, n.tau=NULL, ratio.max=2, ratio.max.trace=10*trace,
          ECBC=FALSE, ties='first', subsample=NULL, pp.type=7){
-    # o = vector of observed values; m = vector of modelled values
-    # c = current period;  p = projected period
-    # ratio = TRUE --> preserve relative trends in a ratio variable
-    # trace = 0.05 --> replace values less than trace with exact zeros
-    # trace.calc = 0.5*trace --> treat values below trace.calc as censored
-    # jitter.factor = 0.01 --> jitter to accommodate ties
-    # n.tau = NULL --> number of empirical quantiles (NULL=sample length)
-    # ratio.max = 2 --> maximum delta when values are less than ratio.max.trace
-    # ratio.max.trace = 10*trace --> values below which ratio.max is applied
-    # ECBC = TRUE --> apply Schaake shuffle to enforce o.c temporal sequencing
-    # subsample = NULL --> use this number of repeated subsamples of size n.tau
-    #  to calculate empirical quantiles (e.g., when o.c, m.c, and m.p are of
-    #  very different size)
-    # pp.type = 7 --> plotting position type used in quantile
-    # tau.m-p = F.m-p(x.m-p)
-    # delta.m = x.m-p {/,-} F.m-c^-1(tau.m-p)
-    # xhat.m-p = F.o-c^-1(tau.m-p) {*,+} delta.m
-    #
+    
     # If jitter.factor > 0, apply a small amount of jitter to accommodate ties
     # due to limited measurement precision
     if(jitter.factor==0 && 
@@ -114,16 +116,17 @@ function(o.c, m.c, m.p, ratio=FALSE, trace=0.05, trace.calc=0.5*trace,
 ################################################################################
 # Multivariate goodness-of-fit scoring function
 
-escore <-
-# Energy score for assessing the equality of two multivariate samples
-# Székely, G.J. and Rizzo, M.L. 2013. Energy statistics: A class of statistics
-#  based on distances. Journal of Statistical Planning and Inference, 143(8),
-#  1249-1272. doi:10.1016/j.jspi.2013.03.018
-# Baringhaus, L. and Franz, C. 2004. On a new multivariate two-sample test.
-#  Journal of Multivariate Analysis, 88(1), 190-206.
-#  doi:10.1016/S0047-259X(03)00079-4
-function (x, y, scale.x = FALSE, n.cases = NULL, alpha = 1, method = "cluster")
-{
+#' Energy score for assessing the equality of two multivariate samples 
+#' 
+#' @references 
+#' 
+#' 1. Székely, G.J. and Rizzo, M.L. 2013. Energy statistics: A class of
+#'   statistics based on distances. Journal of Statistical Planning and
+#'   Inference, 143(8), 1249-1272. doi:10.1016/j.jspi.2013.03.018
+#' 2. Baringhaus, L. and Franz, C. 2004. On a new multivariate two-sample test.
+#'   Journal of Multivariate Analysis, 88(1), 190-206.
+#'   doi:10.1016/S0047-259X(03)00079-4
+escore <- function (x, y, scale.x = FALSE, n.cases = NULL, alpha = 1, method = "cluster") {
     n.x <- nrow(x)
     n.y <- nrow(y)
     if (scale.x) {
@@ -152,15 +155,19 @@ function (x, y, scale.x = FALSE, n.cases = NULL, alpha = 1, method = "cluster")
 #  Matching Marginal Distributions and Inter-variable Dependence Structure.
 #  Journal of Climate, doi:10.1175/JCLI-D-15-0679.1
 
-MRS <-
-# Multivariate rescaling based on Cholesky decomposition of the covariance
-#  matrix
-# Scheuer, E.M., Stoller, D.S., 1962. On the generation of normal random
-#  vectors. Technometrics, 4(2), 278-281.
-# Bürger, G., Schulla, J., & Werner, A.T. 2011. Estimates of future flow,
-#  including extremes, of the Columbia River headwaters. Wat Resour Res 47(10),
-#  W10520, doi:10.1029/2010WR009716
-function(o.c, m.c, m.p, o.c.chol=NULL, o.p.chol=NULL, m.c.chol=NULL,
+#' Multivariate rescaling based on Cholesky decomposition of the covariance
+#'  matrix
+#' 
+#' @references 
+#' 1. Scheuer, E.M., Stoller, D.S., 1962. On the generation of normal random
+#'  vectors. Technometrics, 4(2), 278-281.
+#' 
+#' 2. Bürger, G., Schulla, J., & Werner, A.T. 2011. Estimates of future flow,
+#'  including extremes, of the Columbia River headwaters. Wat Resour Res 47(10),
+#'  W10520, doi:10.1029/2010WR009716
+#' 
+#' @export 
+MRS <- function(o.c, m.c, m.p, o.c.chol=NULL, o.p.chol=NULL, m.c.chol=NULL,
          m.p.chol=NULL){
     # Center based on multivariate means
     o.c.mean <- colMeans(o.c)
@@ -354,9 +361,8 @@ function(o.c, m.c, m.p, iter=20, cor.thresh=1e-4,
 #  using colour distribution transfer. Computer Vision and Image Understanding,
 #  107(1), 123-137.
 
-rot.random <-
 # Random orthogonal rotation
-function(k) {
+rot.random <- function(k) {
   rand <- matrix(rnorm(k * k), ncol=k)
   QRd <- qr(rand)
   Q <- qr.Q(QRd)
@@ -366,13 +372,12 @@ function(k) {
   return(rot)
 }
 
-MBCn <- 
 # Multivariate quantile mapping bias correction (N-dimensional pdf transfer)
 # Cannon, A.J., 2018. Multivariate quantile mapping bias correction: An 
 #  N-dimensional probability density function transform for climate model
 #  simulations of multiple variables. Climate Dynamics, 50(1-2):31-49.
 #  doi:10.1007/s00382-017-3580-6
-function(o.c, m.c, m.p, iter=30, ratio.seq=rep(FALSE, ncol(o.c)),
+MBCn <- function(o.c, m.c, m.p, iter=30, ratio.seq=rep(FALSE, ncol(o.c)),
          trace=0.05, trace.calc=0.5*trace, jitter.factor=0, n.tau=NULL,
          ratio.max=2, ratio.max.trace=10*trace, ties='first',
          qmap.precalc=FALSE, rot.seq=NULL, silent=FALSE, n.escore=0,
@@ -503,9 +508,9 @@ function(o.c, m.c, m.p, iter=30, ratio.seq=rep(FALSE, ncol(o.c)),
 #   bias correction. Hydrology and Earth System Sciences, 22:3175-3196.
 #   doi:10.5194/hess-22-3175-2018
 
-R2D2 <-
+
 # Vrac et al., (2018)
-function(o.c, m.c, m.p, ref.column = 1, ratio.seq = rep(FALSE,
+R2D2 <- function(o.c, m.c, m.p, ref.column = 1, ratio.seq = rep(FALSE,
     ncol(o.c)), trace = 0.05, trace.calc = 0.5 * trace, jitter.factor = 0,
     n.tau = NULL, ratio.max = 2, ratio.max.trace = 10 * trace,
     ties = "first", qmap.precalc = FALSE, subsample = NULL,
@@ -559,5 +564,3 @@ function(o.c, m.c, m.p, ref.column = 1, ratio.seq = rep(FALSE,
     }    
     list(mhat.c = r2d2.c, mhat.p = r2d2.p)
 }
-
-################################################################################
